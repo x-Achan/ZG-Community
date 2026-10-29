@@ -1,4 +1,4 @@
-package com.zhiguang.auth.verification;
+package com.zhiguang.auth.model;
 
 
 // 验证码用途场景

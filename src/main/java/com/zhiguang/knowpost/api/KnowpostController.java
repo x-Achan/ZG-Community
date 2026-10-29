@@ -84,7 +84,7 @@ public class KnowpostController {
         return ResponseEntity.noContent().build();
     }
 
-    @GetMapping("/{id}/detail")
+    @GetMapping("/detail/{id}")
     public KnowPostDetailResponse getDetail(@PathVariable("id") long id,
                                             @AuthenticationPrincipal Jwt jwt){
         Long userId =(jwt == null) ? null : jwtService.extractUserId(jwt);

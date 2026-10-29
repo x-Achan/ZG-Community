@@ -17,26 +17,20 @@ import java.security.interfaces.RSAPublicKey;
 @Configuration
 @RequiredArgsConstructor
 public class AuthConfiguration {
-
     private final AuthProperties properties;
-
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder(
                 properties.getPassword().getBcryptStrength() //传入加密强度
         );
     }
-    /**
-     * 负责签发（用私钥+公钥构造，私钥用于签名）
-     * @return
-     */
+    /** 负责签发（用私钥+公钥构造，私钥用于签名）*/
     @Bean
     public JwtEncoder jwtEncoder() {
         // 读取AuthProperties中的配置对象
         AuthProperties.Jwt jwtProps = properties.getJwt();
         RSAPrivateKey privateKey = PemUtils.readPrivateKey(jwtProps.getPrivateKey());
         RSAPublicKey publicKey = PemUtils.readPublicKey(jwtProps.getPublicKey());
-
         RSAKey jwk = new RSAKey.Builder(publicKey)
                         .privateKey(privateKey)
                         .keyID(jwtProps.getKeyId())

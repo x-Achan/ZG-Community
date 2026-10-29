@@ -1,5 +1,7 @@
 package com.zhiguang.auth.verification;
 
+import com.zhiguang.auth.model.VerificationScene;
+
 /**
  * 发送验证码结果。
  * <p>

@@ -1,7 +1,7 @@
 package com.zhiguang.auth.api.dto;
 
 import com.zhiguang.auth.model.IdentifierType;
-import com.zhiguang.auth.verification.VerificationScene;
+import com.zhiguang.auth.model.VerificationScene;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 

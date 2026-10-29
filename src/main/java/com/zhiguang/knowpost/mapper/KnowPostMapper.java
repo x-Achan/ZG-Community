@@ -65,4 +65,48 @@ public interface KnowPostMapper {
     Long findLikeCount(@Param("postId") long postId);
 
     Long findFavCount(@Param("postId") long postId);
+
+    /**
+     * 查询单个 Feed 卡片。
+     */
+    KnowPostFeedRow findFeedRowById(@Param("id") long id);
+
+    /**
+     * 批量查询 Feed 卡片，消除 N+1。
+     */
+    List<KnowPostFeedRow> findFeedRowsByIds(
+            @Param("ids") List<Long> ids
+    );
+
+    /**
+     * 作者主页作品更新后，重建作者主页索引。
+     * 包含草稿和已发布内容，排除 deleted。
+     */
+    List<KnowPost> listAuthorPostsForFeedIndex(
+            @Param("creatorId") long creatorId
+    );
+
+    /**
+     * 重建热门候选池。
+     */
+    List<Long> listPublicHotCandidateIds(
+            @Param("fromTime") java.time.Instant fromTime,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 关注普通作者时，回填作者最近发布的帖子。
+     */
+    List<KnowPostFeedRow> listRecentVisiblePostsByAuthor(
+            @Param("creatorId") long creatorId,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 关注 Feed inbox 丢失时，从 MySQL 重建最近帖子。当前用户关注的人"的最近帖子
+     */
+    List<KnowPostFeedRow> listRecentFollowingPosts(
+            @Param("userId") long userId,
+            @Param("limit") int limit
+    );
 }

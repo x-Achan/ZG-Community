@@ -95,7 +95,14 @@
             <artifactId>aliyun-sdk-oss</artifactId>
             <version>3.17.3</version>
         </dependency>
+
+        <!-- Feed L1 本地页面缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
     </dependencies>
+
 
     <build>
         <plugins>

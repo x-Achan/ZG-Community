@@ -1,4 +1,4 @@
-package com.zhiguang.auth.verification;
+package com.zhiguang.auth.model;
 
 // 分别对应：成功、找不到、过期、不匹配、尝试次数过多
 public enum VerificationCodeStatus {

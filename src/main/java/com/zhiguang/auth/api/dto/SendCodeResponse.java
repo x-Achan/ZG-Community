@@ -1,6 +1,6 @@
 package com.zhiguang.auth.api.dto;
 
-import com.zhiguang.auth.verification.VerificationScene;
+import com.zhiguang.auth.model.VerificationScene;
 
 /**
  * 发送验证码响应。

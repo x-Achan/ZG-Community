@@ -1,20 +1,15 @@
 package com.zhiguang;
 
 import com.zhiguang.auth.token.JwtService;
-import com.zhiguang.auth.token.RefreshTokenStore;
 import com.zhiguang.auth.token.TokenPair;
 import com.zhiguang.user.domain.User;
 import com.zhiguang.user.mapper.UserMapper;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
-
-import java.time.Duration;
 
 @SpringBootTest
 class ZhiguangApplicationTests {

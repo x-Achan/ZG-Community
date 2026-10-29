@@ -18,14 +18,10 @@ public interface LikeRecordMapper {
      * 插入一条明细。重复时数据库抛唯一键冲突，
      * 由 mybatis-spring 翻译为 DuplicateKeyException，调用方捕获即为"已点过"。
      */
-    int insert(@Param("userId") long userId,
-               @Param("postId") long postId,
-               @Param("type") String type);
+    int insert(@Param("userId") long userId, @Param("postId") long postId, @Param("type") String type);
 
     /** 删除一条明细，返回删除行数（0 = 本来就没点过） */
-    int delete(@Param("userId") long userId,
-               @Param("postId") long postId,
-               @Param("type") String type);
+    int delete(@Param("userId") long userId, @Param("postId") long postId, @Param("type") String type);
 
     /** 单帖计数：从真相源算出真实数量（懒重建用） */
     long countByPostAndType(@Param("postId") long postId, @Param("type") String type);
@@ -53,5 +49,8 @@ public interface LikeRecordMapper {
      * 唯一可能触发的错误就是唯一键冲突 —— 而冲突恰好需要被忽略（Kafka 重复投递）。</p>
      */
     int batchInsertIgnore(@Param("rows") List<LikeRecordRow> rows);
+
+    // 批量取消点赞
+    int batchDelete(@Param("rows") List<LikeRecordRow> rows);
 
 }

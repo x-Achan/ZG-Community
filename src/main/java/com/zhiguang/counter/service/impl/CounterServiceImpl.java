@@ -170,19 +170,6 @@ public class CounterServiceImpl implements CounterService {
         return likeRecordMapper.delete(userId, postId, type.value()) > 0;
     }
 
-    @Override
-    public Map<Long, Long> getCounts(List<Long> postIds, CounterType type) {
-        // 简单版：正确优先（复用 getCount 的懒重建）。
-        // 等 Feed 做出来压测后，再优化成 MGET + 一次 GROUP BY 批量重建。
-        Map<Long, Long> result = new LinkedHashMap<>();
-        if (postIds == null || postIds.isEmpty()) {
-            return result;
-        }
-        for (Long id : postIds) {
-            result.put(id, getCount(id, type));
-        }
-        return result;
-    }
 
     // 读位图
     @Override
@@ -191,6 +178,90 @@ public class CounterServiceImpl implements CounterService {
                 type.value(), "knowpost", String.valueOf(postId), BitmapShard.chunkOf(userId));
         Boolean bit = redis.opsForValue().getBit(bmKey, BitmapShard.bitOf(userId));
         return Boolean.TRUE.equals(bit);
+    }
+
+    // "批量查计数"的核心方法 —— "先查 Redis（MGET），缺失的从 MySQL 补，回填时用 SETNX 防覆盖"
+    @Override
+    public Map<Long, Long> getCounts(List<Long> postIds, CounterType type) {
+        Map<Long, Long> result = new LinkedHashMap<>();
+        if (postIds == null || postIds.isEmpty()) return result;
+
+        List<Long> ids = postIds.stream().distinct().toList(); //distinct 去重
+        List<String> keys = ids.stream().map(id -> CounterKeys.knowpost(id, type)).toList();
+
+        // 核心：MGET批量查
+        List<String> values = redis.opsForValue().multiGet(keys);
+        List<Long> missing = new ArrayList<>();
+
+        // 缺失的放入missing,命中的放入 result
+        for (int i = 0; i < ids.size(); i++) {
+            String value = values == null ? null : values.get(i);
+            if (value == null) {
+                missing.add(ids.get(i));
+            } else {
+                result.put(ids.get(i), Long.parseLong(value));
+            }
+        }
+
+        // 对 missing 进行重建
+        if (!missing.isEmpty()) {
+            Map<Long, Long> truths = new HashMap<>();
+            // 批量差 mysql
+            likeRecordMapper.countByPostIdsAndType(missing, type.value()).forEach(row -> truths.put(row.getPostId(), row.getCnt()));
+
+            for (Long postId : missing) {
+                long truth = truths.getOrDefault(postId, 0L);
+                String key = CounterKeys.knowpost(postId, type);
+                long ttl = baseTtlSeconds + ThreadLocalRandom.current().nextLong(jitterSeconds + 1);
+                /*
+                 * 只在 key 仍不存在时写，避免覆盖查询数据库期间
+                 * 由新点赞写进去的更新值。
+                 */
+                redis.opsForValue().setIfAbsent(key, String.valueOf(truth), Duration.ofSeconds(ttl)); //重建用 SETNX 互斥
+                String latest = redis.opsForValue().get(key);
+                result.put(postId, latest == null ? truth : Long.parseLong(latest)); // 回填redis
+                redis.opsForSet().add(CounterKeys.INDEX, CounterKeys.indexEntry(postId, type)); //去重
+            }
+        }
+        Map<Long, Long> ordered = new LinkedHashMap<>();
+        for (Long id : postIds) {
+            ordered.put(id, result.getOrDefault(id, 0L));
+        }
+        return ordered;
+    }
+
+    // 批量查'当前用户对一批帖子是否点赞/收藏,批量查 bitmap
+    @Override
+    public Set<Long> getActionPostIds(List<Long> postIds, CounterType type, long userId) {
+        if (postIds == null || postIds.isEmpty()) {
+            return Set.of();
+        }
+
+        List<Long> ids = postIds.stream().distinct().toList();
+
+        List<Object> values = redis.executePipelined(
+                new org.springframework.data.redis.core.SessionCallback<>() {
+                    @Override
+                    @SuppressWarnings({"rawtypes", "unchecked"})
+                    public Object execute(
+                            org.springframework.data.redis.core.RedisOperations operations
+                    ) {
+                        for (Long postId : ids) {
+                            String key = CounterKeys.bitmap(type.value(), "knowpost", String.valueOf(postId), BitmapShard.chunkOf(userId));
+                            operations.opsForValue().getBit(key, BitmapShard.bitOf(userId));
+                        }
+                        return null;
+                    }
+                }
+        );
+
+        Set<Long> result = new HashSet<>();
+        for (int i = 0; i < ids.size(); i++) {
+            if (i < values.size() && Boolean.TRUE.equals(values.get(i))) {
+                result.add(ids.get(i));
+            }
+        }
+        return result;
     }
 
 

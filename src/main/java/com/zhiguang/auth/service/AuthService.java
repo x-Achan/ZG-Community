@@ -3,9 +3,10 @@ package com.zhiguang.auth.service;
 import com.zhiguang.auth.api.dto.*;
 import com.zhiguang.auth.config.AuthProperties;
 import com.zhiguang.auth.model.IdentifierType;
+import com.zhiguang.auth.model.VerificationCodeStatus;
+import com.zhiguang.auth.model.VerificationScene;
 import com.zhiguang.auth.token.JwtService;
 import com.zhiguang.auth.token.RedisRefreshTokenStore;
-import com.zhiguang.auth.token.RefreshTokenStore;
 import com.zhiguang.auth.token.TokenPair;
 import com.zhiguang.auth.util.IdentifierValidator;
 import com.zhiguang.auth.verification.*;
@@ -14,10 +15,7 @@ import com.zhiguang.user.mapper.UserMapper;
 import com.zhiguang.user.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.hibernate.validator.internal.util.StringHelper;
-import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.core.OAuth2AccessToken;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -49,10 +47,11 @@ public class AuthService {
     private final UserService userService;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-    private final RefreshTokenStore refreshTokenStore;
+    private final RedisRefreshTokenStore refreshTokenStore;
     private final AuthProperties properties;
     private final VerificationService verificationService;
-    private final UserMapper userMapper;
+
+     private final UserMapper userMapper;
 
     // 发送验证码
     public SendCodeResponse sendCode(SendCodeRequest request) {

@@ -190,4 +190,90 @@
         SELECT fav_count FROM know_posts WHERE id = #{postId}
     </select>
 
+
+    <sql id="FeedColumns">
+        p.id,
+        p.creator_id AS creatorId,
+        p.title,
+        p.description,
+        p.tags,
+        p.img_urls AS imgUrls,
+        p.status,
+        p.visible,
+        p.type,
+        p.is_top AS isTop,
+        p.create_time AS createTime,
+        p.publish_time AS publishTime,
+        u.avatar AS authorAvatar,
+        u.nickname AS authorNickname,
+        u.tags_json AS authorTagJson
+    </sql>
+
+    <select id="findFeedRowById" resultType="com.zhiguang.knowpost.model.KnowPostFeedRow">
+        SELECT
+        <include refid="FeedColumns"/>
+        FROM know_posts p
+        JOIN users u ON u.id = p.creator_id
+        WHERE p.id = #{id}
+    </select>
+
+    <select id="findFeedRowsByIds" resultType="com.zhiguang.knowpost.model.KnowPostFeedRow">
+        SELECT
+        <include refid="FeedColumns"/>
+        FROM know_posts p
+        JOIN users u ON u.id = p.creator_id
+        WHERE p.id IN
+        <foreach collection="ids" item="id"
+                 open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <!-- 根据作者-->
+    <select id="listAuthorPostsForFeedIndex" resultMap="KnowPostResultMap">
+        SELECT *
+        FROM know_posts
+        WHERE creator_id = #{creatorId}
+          AND status != 'deleted'
+        ORDER BY create_time DESC, id DESC
+    </select>
+
+    <select id="listPublicHotCandidateIds" resultType="long">
+        SELECT id
+        FROM know_posts
+        WHERE status = 'published'
+          AND visible = 'public'
+          AND create_time >= #{fromTime}
+        ORDER BY create_time DESC, id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="listRecentVisiblePostsByAuthor" resultType="com.zhiguang.knowpost.model.KnowPostFeedRow">
+        SELECT
+        <include refid="FeedColumns"/>
+        FROM know_posts p
+        JOIN users u ON u.id = p.creator_id
+        WHERE p.creator_id = #{creatorId}
+        AND p.status = 'published'
+        AND p.visible IN ('public', 'followers')
+        ORDER BY p.create_time DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
+
+    <!--重点SQL：当前用户所有关注的人"的最近帖子 inbox-->
+    <select id="listRecentFollowingPosts" resultType="com.zhiguang.knowpost.model.KnowPostFeedRow">
+        SELECT
+        <include refid="FeedColumns"/>
+        FROM following f
+        JOIN know_posts p ON p.creator_id = f.to_user_id
+        JOIN users u ON u.id = p.creator_id
+        WHERE f.from_user_id = #{userId}
+        AND f.rel_status = 1
+        AND p.status = 'published'
+        AND p.visible IN ('public', 'followers')
+        ORDER BY p.create_time DESC, p.id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

@@ -56,4 +56,13 @@
         </foreach>
     </insert>
 
+    <delete id="batchDelete">
+        DELETE FROM like_record
+        WHERE (user_id, post_id, type) IN
+        <foreach collection="rows" item="r"
+                 open="(" separator="," close=")">
+            (#{r.userId}, #{r.postId}, #{r.type})
+        </foreach>
+    </delete>
+
 </mapper>

@@ -1,5 +1,7 @@
 package com.zhiguang.auth.verification;
 
+import com.zhiguang.auth.model.VerificationCodeStatus;
+
 /**
  * 验证码校验结果。
  * <p>

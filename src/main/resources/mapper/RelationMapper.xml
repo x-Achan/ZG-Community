@@ -92,4 +92,49 @@
         LIMIT #{limit}
     </select>
 
+    <select id="listFollowingIds" resultType="long">
+        SELECT to_user_id
+        FROM following
+        WHERE from_user_id = #{userId}
+          AND rel_status = 1
+    </select>
+
+    <select id="listFollowerIds" resultType="long">
+        SELECT from_user_id
+        FROM following
+        WHERE to_user_id = #{userId}
+          AND rel_status = 1
+    </select>
+
+    <select id="listFollowedBigAuthorIds" resultType="long">
+        SELECT f.to_user_id
+        FROM following f
+                 JOIN (
+            SELECT to_user_id
+            FROM following
+            WHERE rel_status = 1
+            GROUP BY to_user_id
+            HAVING COUNT(*) >= #{threshold}
+        ) big_author ON big_author.to_user_id = f.to_user_id
+        WHERE f.from_user_id = #{userId}
+          AND f.rel_status = 1
+    </select>
+
+    <select id="listAllFollowingRows" resultType="map">
+        SELECT to_user_id AS userId, created_at AS createdAt
+        FROM following
+        WHERE from_user_id = #{fromUserId}
+          AND rel_status = 1
+        ORDER BY created_at DESC, to_user_id DESC
+    </select>
+
+    <select id="listAllFollowerRows" resultType="map">
+        SELECT from_user_id AS userId, created_at AS createdAt
+        FROM following
+        WHERE to_user_id = #{toUserId}
+          AND rel_status = 1
+        ORDER BY created_at DESC, from_user_id DESC
+    </select>
+
+
 </mapper>

@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>知光 Feed 风格样图</title>
+  <style>
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#ecebe6}
+    canvas{display:block;width:100vw;height:100vh}
+  </style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const c=document.getElementById('c');
+const g=c.getContext('2d');
+const W=1920,H=1080;
+const FONT='"Microsoft YaHei","Noto Sans CJK SC",sans-serif';
+const MONO='Consolas,"SFMono-Regular",monospace';
+
+function resize(){c.width=innerWidth*devicePixelRatio;c.height=innerHeight*devicePixelRatio;g.setTransform(c.width/W,0,0,c.height/H,0,0)}
+addEventListener('resize',resize);resize();
+const clamp=x=>Math.max(0,Math.min(1,x));
+const ease=x=>{x=clamp(x);return x*x*(3-2*x)};
+function roundRect(x,y,w,h,r,fill,stroke,lw=2){
+  g.beginPath();g.roundRect(x,y,w,h,r);if(fill){g.fillStyle=fill;g.fill()}if(stroke){g.strokeStyle=stroke;g.lineWidth=lw;g.stroke()}
+}
+function text(s,x,y,size,color,weight=700,align='left',family=FONT){
+  g.font=`${weight} ${size}px ${family}`;g.textAlign=align;g.textBaseline='alphabetic';g.fillStyle=color;g.fillText(s,x,y)
+}
+function line(x1,y1,x2,y2,color,w=3,dash=[]){g.beginPath();g.setLineDash(dash);g.moveTo(x1,y1);g.lineTo(x2,y2);g.strokeStyle=color;g.lineWidth=w;g.stroke();g.setLineDash([])}
+function dot(x,y,r,fill,stroke,lw=2){g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fillStyle=fill;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=lw;g.stroke()}}
+function paper(bg='#f5f3ec',ink='#20242b'){
+  g.fillStyle=bg;g.fillRect(0,0,W,H);
+  g.fillStyle=ink+'12';
+  for(let y=18;y<H;y+=28)for(let x=18;x<W;x+=28)g.fillRect(x,y,2,2);
+  g.fillStyle='rgba(20,25,30,.025)';
+  for(let y=0;y<H;y+=8)g.fillRect(0,y,W,1);
+}
+function tag(label,x,y,fg,bg){g.font=`700 17px ${MONO}`;const w=g.measureText(label).width+34;roundRect(x,y,w,40,20,bg,null);text(label,x+17,y+28,17,fg,700,'left',MONO)}
+function card(x,y,w,h,accent='#246BFD',alpha=1){
+  g.save();g.globalAlpha=alpha;g.shadowColor='rgba(22,28,36,.13)';g.shadowBlur=24;g.shadowOffsetY=12;
+  roundRect(x,y,w,h,24,'#fff',null);g.shadowColor='transparent';
+  roundRect(x+24,y+24,76,76,18,accent+'20',null);dot(x+62,y+62,17,accent);
+  roundRect(x+122,y+28,w-158,18,9,'#1b2027',null);roundRect(x+122,y+62,w-212,12,6,'#9aa2ad',null);
+  roundRect(x+24,y+124,w-48,12,6,'#d8dce2',null);roundRect(x+24,y+150,w-96,12,6,'#e6e8ec',null);
+  roundRect(x+24,y+h-48,94,24,12,accent+'1c',null);roundRect(x+130,y+h-48,76,24,12,'#f0f1f3',null);
+  g.restore();
+}
+
+function sceneA(t){
+  const ink='#17202a', blue='#246BFD', orange='#F0643B', pale='#F3F5F2';
+  paper(pale,ink);
+  text('A / 透明分拣线',116,84,22,blue,800,'left',MONO);
+  text('你刷到的，',116,188,82,ink,800);
+  text('不是一张表。',116,285,82,ink,800);
+  text('一张卡片，被三条流水线同时托住',120,334,26,'#59636f',500);
+  card(124,412,510,390,blue,1);
+  card(176,452,510,390,orange,.30);
+  roundRect(122,850,566,56,28,'#17202a',null);text('FEED  /  20 ITEMS  /  NEXT CURSOR',405,887,18,'#f8f6f0',700,'center',MONO);
+
+  const sx=820, sw=900, h=152, gap=36;
+  const layers=[
+    {y:210,c:blue,n:'01',en:'SORT',cn:'ZSet 排好候选顺序',meta:'score + postId'},
+    {y:210+h+gap,c:'#13A37B',n:'02',en:'CACHE',cn:'页面顺序 / 帖子片段',meta:'L1 + Redis'},
+    {y:210+(h+gap)*2,c:orange,n:'03',en:'PROJECT',cn:'Outbox 异步铺路',meta:'Canal → Kafka'}
+  ];
+  layers.forEach((L,i)=>{
+    g.save();g.shadowColor='rgba(24,32,42,.10)';g.shadowBlur=18;g.shadowOffsetY=8;
+    roundRect(sx,L.y,sw,h,20,'#ffffff','#d7dce2',2);g.restore();
+    roundRect(sx,L.y,14,h,7,L.c,null);
+    text(L.n,sx+54,L.y+58,24,L.c,800,'left',MONO);
+    text(L.en,sx+108,L.y+58,22,ink,800,'left',MONO);
+    text(L.cn,sx+54,L.y+112,30,ink,700);
+    tag(L.meta,sx+sw-240,L.y+102,'#fff',L.c);
+    const p=ease(clamp((t-i*.08)/.8));
+    const mx=sx+370+(sw-470)*p;
+    line(sx+370,L.y+76,sx+sw-68,L.y+76,L.c,8);
+    dot(mx,L.y+76,15,'#fff',L.c,7);
+  });
+  line(685,610,796,610,ink,4,[10,10]);
+  dot(744,610,12,orange);
+  text('拆开',742,575,20,orange,800,'center');
+  text('SOURCE  /  FeedServiceImpl · FeedIndexService · FeedCacheService',116,1018,18,'#6d7680',600,'left',MONO);
+}
+
+function metroPath(points,color,w=16){g.beginPath();g.moveTo(points[0][0],points[0][1]);for(let i=1;i<points.length;i++)g.lineTo(points[i][0],points[i][1]);g.strokeStyle=color;g.lineWidth=w;g.lineJoin='round';g.lineCap='round';g.stroke()}
+function sceneB(t){
+  const ink='#171717', paperBg='#f6f0df';paper(paperBg,ink);
+  text('B / FEED 地铁图',112,82,22,'#BE2A2A',800,'left',MONO);
+  roundRect(108,118,730,158,12,ink,null);
+  text('你刷到的，',146,190,56,'#fff',800);
+  text('不是一张表。',146,254,56,'#FFD45A',800);
+  text('四条线路，汇入同一读页引擎',1280,190,30,ink,700,'center');
+
+  const hubX=1048,hubY=560;
+  const lines=[
+    {name:'HOT 热门',c:'#E23B3B',y:365,bend:505},
+    {name:'MINE 我的',c:'#2677D8',y:490,bend:535},
+    {name:'PROFILE 主页',c:'#1C9B6B',y:655,bend:585},
+    {name:'FOLLOWING 关注',c:'#C87917',y:790,bend:615}
+  ];
+  lines.forEach((L,i)=>{
+    metroPath([[120,L.y],[500,L.y],[700,L.bend],[hubX,hubY]],L.c,18);
+    dot(160,L.y,25,paperBg,L.c,10);dot(500,L.y,17,paperBg,L.c,8);
+    text(L.name,210,L.y+11,26,ink,800,'left',MONO);
+    text(i===0?'version':i===1?'owner':'cursor',458,L.y-32,17,L.c,700,'center',MONO);
+  });
+  dot(hubX,hubY,92,ink,'#fff',12);text('read',hubX,550,31,'#fff',800,'center',MONO);text('Page',hubX,590,31,'#FFD45A',800,'center',MONO);
+  metroPath([[hubX+90,hubY],[1380,hubY],[1535,675]],ink,18);
+  const phoneX=1510, phoneY=310;
+  roundRect(phoneX,phoneY,300,560,48,'#fff',ink,10);roundRect(phoneX+28,phoneY+76,244,114,18,'#f1f1ed',null);roundRect(phoneX+28,phoneY+212,244,114,18,'#f1f1ed',null);roundRect(phoneX+28,phoneY+348,244,114,18,'#f1f1ed',null);
+  dot(1535,675,20,'#FFD45A',ink,6);
+  tag('nextCursor',1456,900,'#fff',ink);
+  text('换乘规则：候选 → 过滤 → hydrate',1030,960,24,'#4f4c45',600,'center',MONO);
+  text('SOURCE / 4 endpoints → 1 readPage()',110,1020,18,'#6f685b',600,'left',MONO);
+}
+
+function gear(cx,cy,r,teeth,color,fill){
+  g.save();g.translate(cx,cy);g.beginPath();
+  for(let i=0;i<teeth*2;i++){const a=i*Math.PI/teeth;const rr=i%2===0?r:r*.84;const x=Math.cos(a)*rr,y=Math.sin(a)*rr;i?g.lineTo(x,y):g.moveTo(x,y)}
+  g.closePath();g.fillStyle=fill;g.fill();g.strokeStyle=color;g.lineWidth=5;g.stroke();dot(0,0,r*.26,'#0c1014',color,5);g.restore();
+}
+function sceneC(t){
+  const bg='#0c1014',white='#f4f1e8',cyan='#6CF6D7',grey='#8e98a4';
+  g.fillStyle=bg;g.fillRect(0,0,W,H);
+  g.fillStyle='rgba(255,255,255,.03)';for(let y=0;y<H;y+=6)g.fillRect(0,y,W,1);
+  text('C / FEED 机械剖面',112,82,22,cyan,800,'left',MONO);
+  text('你刷到的，',110,190,72,white,800);
+  text('不是一张表。',110,278,72,white,800);
+  text('是一台持续上链的机器',114,328,25,grey,500);
+
+  roundRect(660,115,1080,820,42,'#151b21','#4a5561',3);
+  roundRect(710,165,470,720,32,'#f4f1e8',null);
+  text('FEED CARD',758,226,19,'#111820',800,'left',MONO);card(758,270,374,300,'#2f80f5',1);
+  line(1205,165,1205,885,'#4a5561',3,[10,12]);
+
+  gear(1410,340,118,20,cyan,'#18232a');gear(1565,495,92,16,'#f4f1e8','#182028');gear(1355,620,78,14,cyan,'#16242a');
+  text('cursor',1410,347,22,white,800,'center',MONO);text('cache',1565,502,19,white,800,'center',MONO);text('outbox',1355,627,18,white,800,'center',MONO);
+  const chips=[['score + postId',1285,745],['L1 / PAGE / ITEM',1485,790],['EVENT → INDEX',1248,845]];
+  chips.forEach(([s,x,y])=>{roundRect(x,y,245,48,8,'#0f151a',cyan,2);text(s,x+122,y+31,17,white,700,'center',MONO)});
+  line(1178,420,1290,390,cyan,4);line(1178,520,1458,500,'#f4f1e8',4);line(1178,650,1288,630,cyan,4);
+  roundRect(110,760,440,92,8,cyan,null);text('INDEX ≠ CONTENT ≠ STATE',330,818,24,bg,900,'center',MONO);
+  text('拆开之后，顺序 / 内容 / 状态各自运转',110,914,27,white,600);
+  text('SOURCE / current implementation · static verification',110,1018,18,grey,600,'left',MONO);
+}
+
+window.DURATION=9;
+window.render=async function(t){
+  g.setTransform(c.width/W,0,0,c.height/H,0,0);g.clearRect(0,0,W,H);
+  if(t<3)sceneA(t);else if(t<6)sceneB(t-3);else sceneC(t-6);
+};
+document.fonts.ready.then(()=>{window.ready=true;window.render(1.5)});
+</script>
+</body>
+</html>

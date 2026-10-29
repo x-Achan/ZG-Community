@@ -74,4 +74,13 @@ public interface RelationMapper {
     List<Map<String, Object>> listAllFollowerRows(
             @Param("toUserId") long toUserId
     );
+
+    List<Long> listFollowingIds(@Param("userId") long userId);
+
+    List<Long> listFollowerIds(@Param("userId") long userId);
+
+    List<Long> listFollowedBigAuthorIds(
+            @Param("userId") long userId,
+            @Param("threshold") long threshold
+    );
 }

@@ -2,6 +2,7 @@ package com.zhiguang.relation.process;
 
 import com.zhiguang.counter.model.UserCounterType;
 import com.zhiguang.counter.service.UserCounterService;
+import com.zhiguang.feed.service.FeedRelationProjector;
 import com.zhiguang.relation.cache.RelationListCacheService;
 import com.zhiguang.relation.event.RelationEvent;
 import com.zhiguang.relation.mapper.RelationMapper;
@@ -17,6 +18,7 @@ public class RelationEventProcessor {
     private final RelationMapper relationMapper;
     private final UserCounterService userCounterService;
     private final RelationListCacheService relationListCacheService;
+    private final FeedRelationProjector feedRelationProjector;
 
     public void process(RelationEvent event) {
         /*
@@ -38,9 +40,12 @@ public class RelationEventProcessor {
         long followings = relationMapper.countFollowingActive(event.fromUserId());
         long followers = relationMapper.countFollowerActive(event.toUserId());
 
-        // 将数量写入 key并等级索引
+        // 将关注数量写入 key并等级索引
         userCounterService.writeThrough(event.fromUserId(), UserCounterType.FOLLOWINGS, followings);
         userCounterService.writeThrough(event.toUserId(), UserCounterType.FOLLOWERS, followers);
+
+        //更新关注 Feed inbox / pull 作者集合
+        feedRelationProjector.project(event);
 
         log.debug("[关系事件处理完成] eventId={}, type={}, from={}, to={}",
                 event.eventId(),
